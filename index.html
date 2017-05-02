@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+  <style>
+
+  .axis {
+    font: 10px sans-serif;
+  }
+
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #F00;
+    shape-rendering: crispEdges;
+  }
+
+  .domain {
+    stroke-width: 2px;
+  }
+  .tick line {
+    stroke-width: 2px;
+  }
+  .tick text{
+    font-size: 1.7em;
+  }
+
+  body{
+    background-color: rgba(144, 238, 144, 0.5);
+
+    font-family: Impact;
+  }
+  h1{
+    display: flex;
+    justify-content: center;
+  }
+  #graph{
+    display: flex;
+    justify-content: center;
+    padding-right: 40px;
+    padding-top: 20px;
+  }
+
+  .Xaxis text{
+    opacity: 0;
+  }
+  svg{
+    font-size: 1.3em;
+  }
+
+  </style>
+</head>
+
+<body>
+
+  <h1>Det var en rysk, en tysk, och en Bellman...</h1>
+
+  <div id="graph"></div>
+
+<script src="http://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-axis.v1.min.js"></script>
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-collection.v1.min.js"></script>
+<script src="https://d3js.org/d3-color.v1.min.js"></script>
+<script src="https://d3js.org/d3-format.v1.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-time.v1.min.js"></script>
+<script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale.v1.min.js"></script>
+
+
+<script>
+
+var data = [
+  {x:1, y:5, name: "En rysk"},
+  {x:2, y:10, name: "En tysk"},
+  {x:3, y:-15, name: "En Bellman"}
+]
+
+var margin = {top: 20, right: 20, bottom: 70, left: 100},
+    width = 600 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var SVG = d3.select("#graph").append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom);
+
+var svg = SVG.append("g").attr("transform", "translate(40,20)");
+
+var x = d3.scaleLinear()
+    .domain([0, 3])
+    .range([0, width]);
+
+var y = d3.scaleLinear()
+  .domain([15,0])
+  .range([0,height/2])
+
+var Xaxis = d3.axisBottom(x).ticks(3);
+var Yaxis = d3.axisLeft(y)
+  .tickValues([0,5,10,15])
+
+svg.append("g")
+  .attr("class", "Xaxis")
+  .attr("transform", "translate(0," + height/2 + ")")
+  .call(Xaxis);
+
+svg.append("g")
+  .attr("class", "Yaxis")
+  .call(Yaxis);
+
+svg.select(".Yaxis").selectAll(".tick")
+  .append("line").attr("class", "helpline")
+  .attr("x1", 0)
+  .attr("x2", width)
+  .attr("y1", 0.5)
+  .attr("y2", 0.5)
+  .attr("stroke-width", 19)
+  .attr("stroke", "black")
+  .attr("opacity", 0.2)
+
+var clickCount = 0;
+var lineOn = false;
+SVG.on("click", function(){
+  clickCount++;
+  var data = data2.slice(0, clickCount)
+  update(data);
+  if (data.map(function(d){return d.y}).reduce(function(a,b){return a < b ? a : b}) < 0){
+    extendAxis();
+  }
+})
+
+
+window.onkeyup = function(e) {
+  var key = e.keyCode ? e.keyCode : e.which;
+  if(key < 37 || key > 40) return;
+  switch(key){
+    case 37:
+      clickCount--;
+      break;
+    case 38:
+      lineOn = true;
+      addPath();
+      break;
+    case 39:
+      clickCount++;
+      break;
+    case 40:
+      lineOn = false;
+      break;
+   }
+  var d = data.slice(0, clickCount)
+  update(d, lineOn);
+  if (d.map(function(d){return d.y}).reduce(function(a,b){return a < b ? a : b}) < 0){
+    extendAxis();
+  }
+
+}
+
+var g;
+var cs = d3.selectAll("circle");
+
+
+function update(data, isLine){
+  var cs = svg.selectAll("circle").data(data);
+  console.log(data)
+
+
+  g = cs.enter().append("g");
+
+  g.append("circle")
+    .attr("r", 1)
+    .style("fill", "#d44")
+    .attr("cy", function(d){ return y(0)})
+    .attr("cx", function(d, i){ return x(d.x) + 0.5})
+    .transition()
+    .duration(400)
+    .attr("cy", function(d,i){return d.y >= 0 ? height/2 - 0.5 - 10 : height/2 + 10 - 0.5})
+    .attr("r", 10);
+
+  var text = g.append("text")
+    .text(function(d){return d.name})
+    .attr("transform", function(d,i){return "translate(" + (x(i+(1.5*d.y/Math.abs(d.y)) )) + ", " + y(d.y) + ")"})
+    .attr("opacity", 0)
+    .attr("text-anchor", "end");
+
+
+  if (clickCount > 3){
+
+  /*var lineGraph = g.append("line")
+    .attr("class", "lineGraph")
+    .attr("x1", function(d,i){return x(data[i].x)})
+    .attr("x2", function(d,i){return data[i-1] ? x(data[i-1].x) : x(data[i].x) + 20})
+    .attr("y1", function(d,i){return y(data[i].y)})
+    .attr("y2", function(d,i){return data[i-1] ? y(data[i-1].y) : y(data[i].y) + 20})
+    .attr("stroke", "black")
+    .attr("stroke-width", 8);
+  */
+ 
+  
+  
+
+  }
+
+  setTimeout(function(){
+    g.selectAll("circle")
+      .transition()
+      .duration(800)
+      //.attr("cy", function(d){ return height/2 - d.y*10});
+      .attr("cy", function(d){return y(d.y)})
+
+    g.append("line")
+      .attr("x1", function(d,i){return x(d.x) + 0.5})
+      .attr("y1", function(){return y(0) - 0.5})
+      .attr("x2", function(d,i){return x(d.x) + 0.5})
+      .attr("y2", function(){return y(0) - 0.5})
+      .transition()
+      .duration(800)
+      //.attr("y2", function(d){ return d.y >= 0 ? height/2 - d.y*10 + 9.5 : height/2 - d.y*10 - 9.5})
+      .attr("y2", function(d){return d.y >= 0 ? y(d.y) + 10 : y(d.y) - 10})
+      .attr("stroke-width", 2)
+      .attr("stroke", "#f66");
+
+      text.transition()
+      .duration(800)
+      .attr("transform", function(d,i){return "translate(" + (x(i+1) - 5) + ", " + y(d.y+1) + ")"})
+      .attr("opacity", 1);
+  },600)
+
+}
+
+function addPath(){
+  var a_line = d3.line().x(function(d,i){return x(i);}).y(function(d){return y(d)});
+
+  var lineData = [0, ... data.map(d=>d.y)];
+
+  var lineGraph = g.append("path")
+    .attr("id", "lol")
+    .datum(lineData)
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 4)
+    .attr("d", a_line);
+
+
+    console.log(lineGraph)
+
+  var lineLength = 800;
+  console.log(lineLength)
+
+  lineGraph
+    .attr("stroke-dasharray", lineLength)
+    .attr("stroke-dashoffset", lineLength)
+    .transition()
+    .delay(20)
+    .duration(6000)
+    .attr("stroke-dashoffset", 0)
+}
+
+function extendAxis(){
+  setTimeout(function(){
+    y = d3.scaleLinear()
+      .domain([15,-15])
+      .range([0,height]);
+
+    Yaxis = d3.axisLeft(y)
+      .tickValues([-15,-10,-5,0,5,10,15]);
+
+    d3.select(".Yaxis")
+      .transition()
+      .duration(800)
+      .call(Yaxis);
+
+    svg.select(".Yaxis").selectAll(".helpline").remove()
+
+    svg.select(".Yaxis").selectAll(".tick")
+      .append("line").attr("class", "helpline")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", 0.5)
+      .attr("y2", 0.5)
+      .attr("stroke-width", 19)
+      .attr("stroke", "black")
+      .attr("opacity", 0.2);
+    }, 600)
+}
+
+update([], false)
+
+
+
+
+</script>
+
+</body>
+
+</html>
