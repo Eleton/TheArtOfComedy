@@ -139,6 +139,7 @@ window.onkeyup = function(e) {
       break;
     case 38:
       lineOn = true;
+      addPath();
       break;
     case 39:
       clickCount++;
@@ -152,10 +153,10 @@ window.onkeyup = function(e) {
   if (d.map(function(d){return d.y}).reduce(function(a,b){return a < b ? a : b}) < 0){
     extendAxis();
   }
-  if(lineOn) addPath(d);
+
 }
 
-
+var g;
 var cs = d3.selectAll("circle");
 
 
@@ -164,7 +165,7 @@ function update(data, isLine){
   console.log(data)
 
 
-  var g = cs.enter().append("g").attr("class","dataPoint");
+  g = cs.enter().append("g");
 
   g.append("circle")
     .attr("r", 1)
@@ -182,6 +183,23 @@ function update(data, isLine){
     .attr("opacity", 0)
     .attr("text-anchor", "end");
 
+
+  if (clickCount > 3){
+
+  /*var lineGraph = g.append("line")
+    .attr("class", "lineGraph")
+    .attr("x1", function(d,i){return x(data[i].x)})
+    .attr("x2", function(d,i){return data[i-1] ? x(data[i-1].x) : x(data[i].x) + 20})
+    .attr("y1", function(d,i){return y(data[i].y)})
+    .attr("y2", function(d,i){return data[i-1] ? y(data[i-1].y) : y(data[i].y) + 20})
+    .attr("stroke", "black")
+    .attr("stroke-width", 8);
+  */
+ 
+  
+  
+
+  }
 
   setTimeout(function(){
     g.selectAll("circle")
@@ -210,10 +228,7 @@ function update(data, isLine){
 
 }
 
-function addPath(data){
-  var g = svg.selectAll(".dataPoint")
-  console.log(g)
-
+function addPath(){
   var a_line = d3.line().x(function(d,i){return x(i);}).y(function(d){return y(d)});
 
   var lineData = [0, ... data.map(d=>d.y)];
@@ -222,12 +237,11 @@ function addPath(data){
     .attr("id", "lol")
     .datum(lineData)
     .attr("fill", "none")
-    .attr("stroke", "rgba(0, 0, 0, 0.5)")
+    .attr("stroke", "black")
     .attr("stroke-width", 4)
     .attr("d", a_line);
 
 
-    console.log(lineGraph)
 
   var lineLength = 800;
   console.log(lineLength)
@@ -236,7 +250,7 @@ function addPath(data){
     .attr("stroke-dasharray", lineLength)
     .attr("stroke-dashoffset", lineLength)
     .transition()
-    .ease(d3.easeSin)
+    .delay(20)
     .duration(6000)
     .attr("stroke-dashoffset", 0)
 }
